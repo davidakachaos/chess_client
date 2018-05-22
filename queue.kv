@@ -1,0 +1,50 @@
+<Button>:
+    font_size: 32
+	# color: 0,1,0,1
+	size_hint: (0.3, 0.2)
+
+<Label>:
+    size_hint: (None, None)
+    # text_size: root.width, None
+    # size: self.texture_size
+
+<QueueForGame>:
+    FloatLayout:
+        width: 100
+        anim_box: anim_box
+        canvas.before:
+            Color:
+                rgba: 0, 0, 1, 1
+            Rectangle:
+                # self here refers to the widget i.e FloatLayout
+                pos: self.pos
+                size: self.size
+        Label:
+            canvas.before:
+                Color:
+                    rgba: 1, 0, 0, 1
+                Rectangle:
+                    # self here refers to the widget i.e FloatLayout
+                    pos: self.pos
+                    size: self.size
+            text: "Wachtrij Status:"
+            id: wachtrijstatus
+            font_size: 32
+            pos_hint: {"top": 0.9, "center_x": 0.5}
+            size: (300, 50)
+        AnchorLayout:
+            id: anim_box
+        Label:
+            text: "Je bevindt je nu in de wachtrij\nom een nieuw spel te starten.\nLet op, dit kan even duren!"
+            font_size: 32
+            pos_hint: {"center_y": 0.5, "center_x": 0.5}
+            size: (300,300)
+        Button:
+            text: "Ga in wachtrij"
+            pos_hint: {"center_x": 0.75, 'bottom':1}
+            size: (300, 50)
+            on_press: root.start_queue_up()
+        Button:
+            text: "Verlaat wachtrij"
+            pos_hint: {"center_x": 0.25, 'bottom':1}
+            size: (300, 50)

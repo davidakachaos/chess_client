@@ -1,0 +1,142 @@
+#:include overview.kv
+#:include queue_for_game.kv
+
+<ChessCell>:
+    set_hint: None, None
+    on_release: self.parent.parent.parent.chesscell_clicked(self.id)
+    Image:
+        set_hint: None, None
+        allow_stretch: True
+        keep_ratio: False
+        y: self.parent.y - (self.parent.height - self.height)/2
+        x: self.parent.x
+        height: self.parent.height
+        width: self.parent.width
+
+<Sidebar>:
+    orientation: 'vertical'
+    size_hint_x: .6
+
+<ChessClockDisplay>:
+    size_hint_x: .9
+    multiline: False
+    font_name: 'data/fonts/digital-7/digital-7'
+    font_size: 45
+    padding_y: (self.height - self.line_height) / 2
+    padding_x: 20
+    disabled: True
+
+<ChessClockButton>:
+    size_hint_x: 1
+    font_name: 'data/fonts/digital-7/digital-7'
+    font_size: 40
+
+<GameButton>:
+    size_hint_x: 1
+    font_size: 20
+
+<BlackChessClock>:
+    ChessClockButton:
+        text: 'Zwart:'
+    ChessClockDisplay:
+        id: black_display
+        text: self.parent.parent.parent.parent.black_time
+
+<WhiteChessClock>:
+    ChessClockButton:
+        text: 'Wit:'
+    ChessClockDisplay:
+        id: white_display
+        text: self.parent.parent.parent.parent.white_time
+
+<ChessClockContainer>:
+    orientation: 'vertical'
+    size_hint: 1, None
+    height: self.parent.height/4
+    pos_hint: {'top': 1, 'right': 1}
+
+<GameButtonContainer>:
+    orientation: 'vertical'
+    size_hint: 1, None
+    height: self.parent.height/4
+    pos_hint: {'top': .25, 'right': 1}
+
+<Movebox>:
+    size_hint: 1, None
+    pos_hint: {'right': 1, 'top': .75}
+    height: self.parent.height/2
+    TextInput:
+        disabled: True
+        text: self.parent.parent.parent.movebox_moves
+        # font_name: 'data/fonts/digital-7/digital-7'
+        font_size: 20
+
+<Login>:
+    BoxLayout
+        id: login_layout
+        orientation: 'vertical'
+        padding: [10,50,10,50]
+        spacing: 50
+
+        Label:
+            text: 'Welkom'
+            font_size: 32
+
+        BoxLayout:
+            orientation: 'vertical'
+
+            Label:
+                text: 'Login'
+                font_size: 18
+
+                text_size: root.width-20, 20
+
+            TextInput:
+                id: login
+                multiline:False
+                font_size: 28
+
+        BoxLayout:
+            orientation: 'vertical'
+            Label:
+                text: 'Password'
+                halign: 'left'
+                font_size: 18
+                text_size: root.width-20, 20
+
+            TextInput:
+                id: password
+                multiline:False
+                password:True
+                font_size: 28
+
+        Button:
+            text: 'Login'
+            font_size: 24
+
+            on_press: root.do_login(login.text, password.text)
+
+<ChessGame>:
+    ChessboardCentered:
+        id: board_container
+        Chessboard:
+            id: board
+            rows: 8
+            columns:8
+
+    Sidebar:
+        ChessClockContainer:
+            WhiteChessClock:
+            BlackChessClock:
+        Movebox:
+        GameButtonContainer:
+            GameButton:
+                id: back_to_overview
+                text: "Terug naar spellen lijst"
+                on_release: self.parent.parent.parent.overview_clicked(self.id)
+
+<ChessboardApp>:
+    LoginScreen:
+        Login:
+    GameScreen:
+        ChessGame:

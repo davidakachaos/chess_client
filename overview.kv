@@ -1,0 +1,36 @@
+<GamesOverview>:
+    FloatLayout:
+        id: overview_layout
+        spacing: 10
+        Label:
+            text: 'Huidige spellen'
+            pos_hint: {'top': .99, 'left': 0.01}
+            # size_hint: (1, 0.05)
+            size_hint_max_x: 120
+            size_hint_max_y: 20
+            size_hint_min_y: 20
+            font_size: 16
+
+        Button:
+            text: 'Start nieuw spel (Willekeurig)'
+            pos_hint: {'top': .99, 'right': .99}
+            size_hint: (.3, 0.05)
+            size_hint_max_y: 25
+            size_hint_min_x: 210
+
+        GridLayout:
+            canvas.before:
+                Color:
+                    rgba: 0, 1, 0, 1
+                Rectangle:
+                    # self here refers to the widget i.e FloatLayout
+                    pos: self.pos
+                    size: self.size
+            # size_hint: (.5, 1)
+            height: self.minimum_height
+            cols: 1
+            size_hint_y: None
+            id: current_games
+            # Don't eat the full window
+            pos: (0, root.height - 100)
+            orientation: 'vertical'
