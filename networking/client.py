@@ -111,6 +111,10 @@ class NetClient():
                 game_id = self._getString(cmd)
         return game_id
 
+    def dequeue(self):
+        cmd = 'dequeue'
+        return self._getString(cmd)
+
     def game_state(self, gguid):
         cmd = f"getboardstate|{gguid}"
         state = self._getObject(cmd)
