@@ -8,6 +8,7 @@ from kivy.uix.button import Button
 from models.player import Player
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
+from queue_for_game import QueueForGame
 
 
 class GameRow(BoxLayout):
@@ -57,6 +58,12 @@ class GamesOverview(Screen):
         Logger.info(f"Found {len(current)} games for player")
         for game in current:
             self.ids.current_games.add_widget(GameRow(game))
+
+    def queue_new_random_game(self):
+        app = App.get_running_app()
+        app.manager.add_widget(QueueForGame(name="queue"))
+        app.manager.current = "queue"
+        Clock.schedule_once(app.manager.get_screen("queue").start_queue_up, 0.3)
 
 
 class OverviewApp(App):
