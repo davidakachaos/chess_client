@@ -53,6 +53,10 @@ class Login(Screen):
             self.ids.login.focus = True
             self.loginFailedMessage()
 
+    def goto_register(self):
+        self.manager.transition = FallOutTransition()
+        self.manager.current = "registration"
+
     def loginFailedMessage(self):
         layout = GridLayout(cols=1, padding=10)
         popupLabel = Label(text="Login failed!")

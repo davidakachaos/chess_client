@@ -22,14 +22,16 @@ from kivy.resources import resource_find
 from kivy.garden.notification import Notification
 # Chess imports
 import chess
-import chess.uci
+# import chess.uci
 # Other imports
 import os
 import string
 import threading
 from functools import partial
+# import views
 from login import Login
 from games_overview import GamesOverview
+from register import Register
 # Models import
 from models.player import Player
 from models.game import Game
@@ -502,6 +504,7 @@ class ChessboardApp(App):
 
         # Add screens to app
         self.manager.add_widget(Login(name='login'))
+        self.manager.add_widget(Register(name='registration'))
         self.manager.add_widget(GamesOverview(name="overview"))
 
         game = ChessGame()

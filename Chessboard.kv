@@ -1,4 +1,6 @@
 #:include overview.kv
+#:include login.kv
+#:include register.kv
 #:include queue_for_game.kv
 
 <ChessCell>:
@@ -70,51 +72,6 @@
         text: self.parent.parent.parent.movebox_moves
         # font_name: 'data/fonts/digital-7/digital-7'
         font_size: 20
-
-<Login>:
-    BoxLayout
-        id: login_layout
-        orientation: 'vertical'
-        padding: [10,50,10,50]
-        spacing: 50
-
-        Label:
-            text: 'Welkom'
-            font_size: 32
-
-        BoxLayout:
-            orientation: 'vertical'
-
-            Label:
-                text: 'Login'
-                font_size: 18
-
-                text_size: root.width-20, 20
-
-            TextInput:
-                id: login
-                multiline:False
-                font_size: 28
-
-        BoxLayout:
-            orientation: 'vertical'
-            Label:
-                text: 'Password'
-                halign: 'left'
-                font_size: 18
-                text_size: root.width-20, 20
-
-            TextInput:
-                id: password
-                multiline:False
-                password:True
-                font_size: 28
-
-        Button:
-            text: 'Login'
-            font_size: 24
-
-            on_press: root.do_login(login.text, password.text)
 
 <ChessGame>:
     ChessboardCentered:
