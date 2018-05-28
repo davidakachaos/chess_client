@@ -24,6 +24,12 @@ class QueueForGame(Screen):
         threading.Thread(target=self.queue_up).start()
 
     def queue_up(self):
+        """Queue up for a new game.
+
+        Spawn a thread to queue for a game.
+        This can be canceled by another method.
+
+        """
         app = App.get_running_app()
         self.update_label_text("In de wachtrij voor een nieuw spel")
         start_q = datetime.now()
@@ -31,11 +37,14 @@ class QueueForGame(Screen):
         while new_game_id == "queued_for_game":
             tim = datetime.now()
             seconds_in_q = int((tim - start_q).total_seconds())
-            self.update_label_text(f"In de wachtrij voor een nieuw spel.\nTijd in wachtrij: {seconds_in_q}")
+            self.update_label_text(
+                "In de wachtrij voor een nieuw spel."
+                f"\nTijd in wachtrij: {seconds_in_q}")
             sleep(1)
             if self.stop.is_set():
                 # Need to de-queue?
-                self.update_label_text(f"Wachtrij verlaten!\nTijd in wachtrij: {seconds_in_q}")
+                self.update_label_text("Wachtrij verlaten!"
+                                       f"\nTijd in wachtrij: {seconds_in_q}")
                 return
             else:
                 new_game_id = app.player.net.queue_up_new_game(blocking=False)
@@ -49,6 +58,11 @@ class QueueForGame(Screen):
         game_screen.load_game()
 
     def dequeue(self):
+        """Go out of the queue for a new game.
+
+        If we are in the queue for a new game, this function
+        allows us to exit that queue.
+        """
         app = App.get_running_app()
         self.stop.set()
         dequeue_res = app.player.net.dequeue()
@@ -61,9 +75,16 @@ class QueueForGame(Screen):
         sleep(2)
         app.manager.current = "overview"
 
-
     @mainthread
     def update_label_text(self, new_text):
+        """Update the status label with text.
+
+        Parameters
+        ----------
+        new_text : String
+            The message to update the label with.
+
+        """
         self.ids.wachtrijstatus.text = f"Wachtrij Status:\n\n{new_text}"
 
 
