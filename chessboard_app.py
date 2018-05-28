@@ -19,7 +19,8 @@ from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.textinput import TextInput
 from kivy.resources import resource_find
-from kivy.garden.notification import Notification
+if __name__ == '__main__':
+    from kivy.garden.notification import Notification
 # Chess imports
 import chess
 # import chess.uci
