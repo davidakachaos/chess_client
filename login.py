@@ -31,8 +31,13 @@ class Login(Screen):
         self.ids.login.write_tab = False
         self.ids.login.focus = True
         self.ids.password.write_tab = False
+        self.ids.host_address.write_tab = False
+        self.ids.host_port.write_tab = False
         self.ids.login.bind(on_text_validate=self.on_enter)
         self.ids.password.bind(on_text_validate=self.on_enter)
+        app = App.get_running_app()
+        self.ids.host_address.text = app.host_address
+        self.ids.host_port.text = app.host_port
 
     def on_enter(self, *instance):
         """Login when user hits enter in a textbox."""
@@ -59,13 +64,16 @@ class Login(Screen):
 
         app.username = loginText
         app.password = passwordText
+        app.host_address = self.ids.host_address.text
+        app.host_port = self.ids.host_port.text
 
         if len(loginText) == 0 or len(passwordText) == 0:
             self.ids.login.focus = True
             return False
 
-        Logger.info(f"Trying: {loginText}/{passwordText}")
-        app.player = Player(loginText, password=passwordText)
+        Logger.info(f"Trying: {loginText}/{passwordText} h: {app.host_address}:{app.host_port}")
+        app.player = Player(loginText, password=passwordText,
+                            host_address=app.host_address, host_port=app.host_port)
 
         if app.player.logged_in:
             self.manager.transition = FallOutTransition()
@@ -86,8 +94,13 @@ class Login(Screen):
 
     def loginFailedMessage(self):
         """Show a login failed message to the user."""
+        app = App.get_running_app()
+
         layout = GridLayout(cols=1, padding=10)
-        popupLabel = Label(text="Login failed!")
+        if app.player.net.good_server_connection:
+            popupLabel = Label(text="Login failed!\nFoute gebruikersnaam en/of wachtwoord!")
+        else:
+            popupLabel = Label(text="Login failed!\nFout host adres en/of poort!")
         closeButton = Button(text="Okay")
 
         layout.add_widget(popupLabel)

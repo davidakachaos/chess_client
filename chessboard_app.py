@@ -19,23 +19,21 @@ from kivy.uix.screenmanager import ScreenManager
 from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.textinput import TextInput
 from kivy.resources import resource_find
-if __name__ == '__main__':
-    from kivy.garden.notification import Notification
-# Chess imports
-import chess
-# import chess.uci
 # Other imports
 import os
 import string
-import threading
 from functools import partial
 # import views
 from login import Login
 from games_overview import GamesOverview
 from register import Register
+from mwt import MWT
 # Models import
 from models.player import Player
 from models.game import Game
+
+if __name__ == '__main__':
+    from kivy.garden.notification import Notification
 
 board = None  # chess.Board()
 # No need for a computer opponent
@@ -455,6 +453,8 @@ class GameScreen(Screen):
 class ChessboardApp(App):
     username = StringProperty(None)
     password = StringProperty(None)
+    host_address = StringProperty("127.0.0.1")
+    host_port = StringProperty("2004")
     player = ObjectProperty(None)
     manager = ObjectProperty(None)
 
@@ -466,10 +466,18 @@ class ChessboardApp(App):
             return
 
         before_load = list(self.player.current_games)
+        current_my_turn = [game for game in before_load if game.my_turn]
         self.player.load_games_from_server()
         after_load = list(self.player.current_games)
+        new_my_turn = [game for game in after_load if game.my_turn]
+        my_turn = [game for game in new_my_turn if game not in current_my_turn]
         new_games = [game for game in after_load if game not in before_load]
         removed_games = [game for game in before_load if game not in after_load]
+
+        if my_turn:
+            print(f"We found new my turn?? {my_turn}")
+            for game in my_turn:
+                self.notify_my_move(game)
 
         if new_games:
             print(f"We found new games?? {new_games}")
@@ -485,6 +493,15 @@ class ChessboardApp(App):
         Notification().open(
             title='Nieuw spel gestart!',
             message=f"Er is een nieuw spel begonnen tegen {game.my_opponent}.",
+            timeout=5,
+            icon=resource_find('data/logo/kivy-icon-128.png')
+            # on_stop=partial(self.printer, 'Notification closed')
+        )
+
+    def notify_my_move(self, game):
+        Notification().open(
+            title='Jouw beurt!',
+            message=f"Het is jouw beurt in een spel tegen {game.my_opponent}.",
             timeout=5,
             icon=resource_find('data/logo/kivy-icon-128.png')
             # on_stop=partial(self.printer, 'Notification closed')
@@ -524,6 +541,7 @@ class ChessboardApp(App):
         Config.write()
 
         Clock.schedule_interval(self.check_background_games, 2)
+        Clock.schedule_interval(MWT().collect, 1)
 
         return self.manager
 

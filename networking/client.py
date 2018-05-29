@@ -10,6 +10,7 @@ from random import randint
 from socket import SHUT_RDWR
 from time import sleep
 from models.game import Game
+from mwt import MWT
 
 # logging.basicConfig(level=logging.DEBUG,
 #                     format='%(name)s: %(message)s',
@@ -36,11 +37,20 @@ class NetClient():
         self.logger = Logger
         self.logger.debug('__init__')
         self.host = host
-        self.port = port
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.connect((self.host, self.port))
+        self.port = int(port)
+        self._connect_to_server()
         self.logged_in = False
         self._uguid = None
+
+    def _connect_to_server(self):
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.good_server_connection = False
+        try:
+            self._socket.connect((self.host, self.port))
+            self.good_server_connection = True
+            return True
+        except ConnectionRefusedError as e:
+            return False
 
     def _send(self, cmd):
         """Send a command to the server and return the raw result.
@@ -120,6 +130,7 @@ class NetClient():
         state = self._getObject(cmd)
         return state
 
+    @MWT(timeout=2)
     def is_it_my_turn(self, gguid):
         cmd = f"myturn|{gguid}"
         result = self._getString(cmd)
@@ -138,6 +149,7 @@ class NetClient():
         result = self._getString(cmd)
         return result
 
+    @MWT(timeout=15)
     def my_side(self, gguid):
         cmd = f"myside|{gguid}"
         result = self._getString(cmd)
@@ -148,6 +160,7 @@ class NetClient():
         board = self._getObject(cmd)
         return board
 
+    @MWT(timeout=5)
     def current_games(self):
         if self.logged_in is False or self._uguid is None:
             return []
@@ -172,6 +185,9 @@ class NetClient():
         """
         if self.logged_in and self._uguid is not None:
             return True
+        # Bad server connection?
+        if not self.good_server_connection and not self._connect_to_server():
+            return False
         # Send the login information to the server and see if we are correct
         hashed_password = hashlib.sha224(password.encode("utf8")).hexdigest()
         cmd = f"login|{username}|{hashed_password}"
