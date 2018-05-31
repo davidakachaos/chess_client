@@ -1,4 +1,3 @@
-from .game import Game
 from networking.client import NetClient
 from mwt import MWT
 

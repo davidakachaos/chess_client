@@ -8,13 +8,10 @@ from kivy.logger import Logger
 
 from random import randint
 from socket import SHUT_RDWR
+import time
 from time import sleep
 from models.game import Game
 from mwt import MWT
-
-# logging.basicConfig(level=logging.DEBUG,
-#                     format='%(name)s: %(message)s',
-#                     )
 
 
 class NetClient():
@@ -65,16 +62,36 @@ class NetClient():
         if self.logged_in:
             cmd += f"|{self._uguid}"
 
-        with self._socket as s:
-            try:
-                s.sendall(cmd.encode("utf8"))
-            except:
-                # recreate the socket and try again
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((self.host, self.port))
-                s.sendall(cmd.encode("utf8"))
-            data = s.recv(4096)
-            return data
+        self._connect_to_server()
+        if not self.good_server_connection:
+            self.logger.error("Connection lost!!")
+            return None
+        self.logger.debug(f"Sending: {cmd}")
+        # total data partwise in an array
+        total_data = []
+        data = ''
+        try:
+            self._socket.sendall(cmd.encode("utf8"))
+        except ConnectionResetError:
+            self._connect_to_server()
+            self._socket.sendall(cmd.encode("utf8"))
+
+        # beginning time
+        start = time.time()
+        while 1:
+            data = self._socket.recv(4096)
+            if len(data) > 0:
+                total_data.append(data)
+                sleep(0.01)
+            else:
+                # Done receiving
+                break
+
+        took = time.time() - start
+        self.logger.debug(f"Response took: {took}")
+
+        # join all parts to make final string
+        return b''.join(total_data)
 
     def _getString(self, cmd):
         """Send a command to the server and return the response as a String.
@@ -130,7 +147,6 @@ class NetClient():
         state = self._getObject(cmd)
         return state
 
-    @MWT(timeout=2)
     def is_it_my_turn(self, gguid):
         cmd = f"myturn|{gguid}"
         result = self._getString(cmd)
@@ -195,6 +211,7 @@ class NetClient():
         if guid == "invalid":
             return False
         else:
+            self.logger.debug(f"Setting guid; {guid}")
             self.logged_in = True
             self._uguid = guid
             return True
