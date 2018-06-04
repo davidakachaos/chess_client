@@ -31,3 +31,38 @@ class Game(object):
     @property
     def my_side(self):
         return self.net.my_side(self.guid)
+
+    @property
+    def over(self):
+        board = self.board
+        return board.is_game_over()
+
+    @property
+    def over_reason(self):
+        board = self.board
+        side_won = ""
+        if board.result()[-1] == '1':
+            if self.my_side == "White":
+                side_won = 'Zwart (tegenstander) heeft gewonnen'
+            else:
+                side_won = 'Zwart (u) heeft gewonnen'
+        elif board.result()[0] == '1':
+            if self.my_side == "White":
+                side_won = 'Wit (u) heeft gewonnen'
+            else:
+                side_won = 'Wit (tegenstander) heeft gewonnen'
+        else:
+            side_won = 'Gelijkspel!'
+
+        if not board.is_game_over():
+            return ''
+        if board.is_checkmate():
+            return f"Schaakmat - {side_won}"
+        elif board.is_stalemate():
+            return "Gelijkspel!"
+        elif board.is_insufficient_material():
+            return f"Onvoldoende materiaal - {side_won}"
+        elif board.is_seventyfive_moves():
+            return f"75 zetten regel - {side_won}"
+        elif board.is_fivefold_repetition():
+            return f"5 voudig herhaalt regel - {side_won}"

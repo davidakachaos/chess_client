@@ -49,11 +49,20 @@ class QueueForGame(Screen):
             else:
                 new_game_id = app.player.net.queue_up_new_game(blocking=False)
 
+        Logger.info(f"New game id: {new_game_id}")
         game = Game(new_game_id, app.player.net)
         self.update_label_text(f"Nieuw spel tegen {game.my_opponent} gestart!")
         sleep(2)
+        self.goto_game(new_game_id)
+
+    @mainthread
+    def goto_game(self, guid):
+        """Load the given game."""
+        self.stop.set()
+        Logger.info(f"Game {guid} openen")
+        app = App.get_running_app()
         game_screen = app.manager.get_screen('game')
-        game_screen.game_instance = game
+        game_screen.game_instance = Game(guid, app.player.net)
         app.manager.current = 'game'
         game_screen.load_game()
 

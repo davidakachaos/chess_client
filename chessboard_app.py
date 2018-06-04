@@ -7,6 +7,7 @@ from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.screenmanager import ScreenManager
 from kivy.resources import resource_find
+from kivy.logger import Logger
 # Other imports
 import os
 # import views
@@ -27,37 +28,60 @@ class ChessboardApp(App):
     player = ObjectProperty(None)
     manager = ObjectProperty(None)
 
+    my_turn_games = []
+    opp_turn_games = []
+    old_games = []
+
     def check_background_games(self, *args):
         """Check if there are changes to any current games for this player."""
         if self.username is None or self.password is None:
             return
         if self.player.logged_in is False:
             return
+        if not self.my_turn_games and not self.old_games and not self.opp_turn_games:
+            self.load_current_games()
 
-        before_load = list(self.player.current_games)
-        current_my_turn = [game for game in before_load if game.my_turn]
-        self.player.load_games_from_server()
-        after_load = list(self.player.current_games)
-        new_my_turn = [game for game in after_load if game.my_turn]
-        my_turn = [game for game in new_my_turn if game not in current_my_turn]
-        new_games = [game for game in after_load if game not in before_load]
-        removed_games = [
-            game for game in before_load if game not in after_load]
+        games = list(self.player.current_games)
+        if len(games) < 1:
+            return
 
-        if my_turn:
-            print(f"We found new my turn?? {my_turn}")
-            for game in my_turn:
-                self.notify_my_move(game)
-
-        if new_games:
-            print(f"We found new games?? {new_games}")
-            for game in new_games:
-                self.notify_new_game(game)
-
-        if removed_games:
-            print(f"There are games who ended? {removed_games}")
-            for game in removed_games:
+        for game in games:
+            if game.over and game in self.old_games:
+                # NOOP
+                pass
+            elif game.over and game not in self.old_games:
+                Logger.info(f"Game over and not in old games? {game.guid}")
                 self.notify_removed_game(game)
+                self.old_games.append(game)
+                if game in self.opp_turn_games:
+                    self.opp_turn_games.remove(game)
+                if game in self.my_turn_games:
+                    self.my_turn_games.remove(game)
+
+            elif game.my_turn and game in self.opp_turn_games:
+                # New game for us to make a move!
+                self.notify_my_move(game)
+                self.my_turn_games.append(game)
+                self.opp_turn_games.remove(game)
+            elif not game.my_turn and game in self.my_turn_games:
+                # Opponent is to move now.
+                self.opp_turn_games.append(game)
+                self.my_turn_games.remove(game)
+            elif game not in self.my_turn_games and game not in self.opp_turn_games:
+                self.notify_new_game(game)
+                if game.my_turn:
+                    self.my_turn_games.append(game)
+                else:
+                    self.opp_turn_games.append(game)
+
+    def load_current_games(self):
+        Logger.info("Loading games for current player...")
+        games = list(self.player.all_games)
+        self.my_turn_games = [
+            game for game in games if game.my_turn and not game.over]
+        self.opp_turn_games = [
+            game for game in games if not game.my_turn and not game.over]
+        self.old_games = [game for game in games if game.over]
 
     def notify_new_game(self, game):
         Notification().open(
@@ -70,8 +94,8 @@ class ChessboardApp(App):
 
     def notify_my_move(self, game):
         Notification().open(
-            title='Jouw beurt!',
-            message=f"Het is jouw beurt in een spel tegen {game.my_opponent}.",
+            title='Uw beurt!',
+            message=f"Het is uw beurt in een spel tegen {game.my_opponent}.",
             timeout=5,
             icon=resource_find('data/logo/kivy-icon-128.png')
             # on_stop=partial(self.printer, 'Notification closed')
@@ -80,7 +104,7 @@ class ChessboardApp(App):
     def notify_removed_game(self, game):
         Notification().open(
             title='Spel beëindigd!',
-            message=f"Er is een spel beëindigd tegen {game.my_opponent}. Resultaat: {game.state['result']}",
+            message=f"Spel beëindigd tegen {game.my_opponent}.\nResultaat: {game.over_reason}",
             timeout=5,
             icon=resource_find('data/logo/kivy-icon-128.png')
             # on_stop=partial(self.printer, 'Notification closed')
@@ -109,7 +133,7 @@ class ChessboardApp(App):
 
         Config.set('graphics', 'resizable', '1')
         Config.write()
-
+        # Notifications...
         Clock.schedule_interval(self.check_background_games, 2)
         Clock.schedule_interval(MWT().collect, 1)
 

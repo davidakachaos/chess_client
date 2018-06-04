@@ -10,6 +10,8 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty
 from kivy.properties import StringProperty
 from kivy.uix.screenmanager import Screen
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 # from kivy.uix.screenmanager import SlideTransition
 from kivy.uix.textinput import TextInput
 from kivy.app import App
@@ -51,7 +53,6 @@ class Chessboard(GridLayout):
         # Can't call ids directly for some reason so ...
         # Dictionary mapping ids to children (Chess cells)
         ids = {child.id: child for child in self.children}
-        Logger.info(f"Loading board FEN; {board.fen()}")
         # Get the board positions from the fen
         b = str(board.fen).split()[4].replace('/', '')[7:]
         # Replace empty spaces with dots
@@ -105,7 +106,6 @@ class Chessboard(GridLayout):
             Clock.schedule_once(partial(self.button_up, id), .7)
         else:
             Clock.schedule_once(partial(self.button_up, id), .3)
-            # board.push(engine_move)
             Clock.schedule_once(self.update_positions)
 
     def engine_move(self, move, *args):
@@ -176,6 +176,8 @@ class ChessGame(BoxLayout):
 
     time_interval = 0.5
 
+    game_done = False
+
     def id_to_square(self, id, *args):
         id = int(id)
         row = abs(id//8 - 8)
@@ -222,9 +224,13 @@ class ChessGame(BoxLayout):
     def update_board(self, *args):
         global board
         board = self.game_instance.board
-        Logger.info(f"Board: {self.game_instance.board}")
         self.ids.board.update_positions(self.game_instance.board)
         # Adjust the move list displayed
+        if not self.game_instance.my_turn:
+            self.movebox_moves = "Tegenstander aan zet"
+        else:
+            self.movebox_moves = "Zelf aan zet!"
+        Logger.info("update_board done, updating moves_list...")
         self.update_moves_list()
 
     def update_moves_list(self):
@@ -233,6 +239,8 @@ class ChessGame(BoxLayout):
             return zip(*[iter(iterable)]*n)
         move = 1
         moves = ""
+        if len(self.game_instance.board.move_stack) == 1:
+            moves += f"{move}. {str(self.game_instance.board.move_stack[0])}\n"
         for white_move, black_move in grouped(list(self.game_instance.board.move_stack), 2):
             moves += f"{move}. {str(white_move)}\t\t{str(black_move)}\n"
             move += 1
@@ -248,9 +256,15 @@ class ChessGame(BoxLayout):
 
         The board will be highlighted with legal places to move
         the piece selected.
+
         """
         if not self.game_instance.my_turn:
             Logger.info("Not our time to make a move yet!")
+            self.selected_square = None
+            return False
+
+        if self.game_done:
+            Logger.info("Game has ended!")
             self.selected_square = None
             return False
 
@@ -298,6 +312,9 @@ class ChessGame(BoxLayout):
             self.select_piece(id)
 
     def await_turn(self, *args):
+        if self.game_done:
+            # We're done with this game, don't schedual a new one
+            return
         if self.game_instance.my_turn:
             self.movebox_moves = "Zelf aan zet"
             Logger.info("Opponent made a move!!")
@@ -313,16 +330,20 @@ class ChessGame(BoxLayout):
             self.select_piece(move[0])
             Clock.schedule_once(partial(self.ids.board.press_button,
                                         move[1], is_engine_move=True, engine_move=engine_move), 1)
+            Clock.schedule_once(self.game_end_check, 1)
         else:
             Logger.info("Waiting for opponent to make a move")
-            Clock.schedule_once(self.await_turn, 2)
+            Clock.schedule_once(self.await_turn, 1)
 
     def setup_netgame(self):
         if not self.game_instance.my_turn:
             Logger.info("Waiting for opponent to make a move")
             self.movebox_moves = "Tegenstander aan zet"
+            global board
+            board = self.game_instance.board
+            Logger.info("Loaded game, updating movelist...")
             self.update_moves_list()
-            Clock.schedule_once(self.await_turn, 5)
+            Clock.schedule_once(self.await_turn, 1)
         else:
             self.movebox_moves = "Zelf aan zet!"
             self.update_moves_list()
@@ -332,7 +353,7 @@ class ChessGame(BoxLayout):
         return str(board.fen).split()[5]
 
     def chesscell_clicked(self, id, *args):
-        if self.game_instance.my_turn:
+        if self.game_instance.my_turn and not self.game_done:
             if id == self.selected_square:
                 self.update_board()
             elif self.selected_square is None:
@@ -370,53 +391,57 @@ class ChessGame(BoxLayout):
             self.black_time = str(round(float(self.black_time)
                                         - self.interval, 2))
 
-    def setup_clocks(self, *args, time=60, interval=0.1):
-        pass
-        # self.black_time = str(time)
-        # self.white_time = str(time)
-        # self.interval = interval
-
-    def end_game(self, reason, *args):
+    def end_game(self, reason, show_message, *largs):
         # Clock.schedule_once(partial(self.white_time_counter, cancel=True), 1)
         # Clock.schedule_once(partial(self.black_time_counter, cancel=True), 1)
-        self.movebox_moves = f"Game over! {reason}\n\n"
+        self.movebox_moves = "Spel afgelopen!\n"
+        self.movebox_moves += self.game_instance.over_reason
+        self.movebox_moves += "\n"
         self.update_moves_list()
-        print(reason)
         self.movebox_moves += "\n\n"
-        if 'white' in reason:
-            self.movebox_moves += 'Black won'
-        elif 'black' in reason:
-            self.movebox_moves += 'White won'
-        else:
-            if board.result()[-1] == '1':
-                self.movebox_moves += 'Black won'
-            elif board.result()[0] == '1':
-                self.movebox_moves += 'White won'
-            else:
-                self.movebox_moves += 'Draw'
+        self.movebox_moves += "Spel afgelopen!\n"
+        self.movebox_moves += self.game_instance.over_reason
+        if show_message:
+            self.end_game_message(self.game_instance.over_reason)
+        self.game_done = True
 
-    def game_end_check(self, *args):
+    def end_game_message(self, message):
+        """Show a game over message to the user."""
+        layout = GridLayout(cols=1, padding=10)
+        popupLabel = Label(text=message)
+        closeButton = Button(text="Okay")
+
+        layout.add_widget(popupLabel)
+        layout.add_widget(closeButton)
+
+        # Instantiate the modal popup and display
+        popup = Popup(title='Spel afgelopen!',
+                      content=layout)
+        popup.open()
+        # Attach close button press with popup.dismiss action
+        closeButton.bind(on_press=popup.dismiss)
+
+    def game_end_check(self, show_message=True):
+        global board
         if board.is_game_over():
             if board.is_checkmate():
-                self.end_game('checkmate')
+                self.end_game('checkmate', show_message)
             elif board.is_stalemate():
-                self.end_game('stalemate')
+                self.end_game('stalemate', show_message)
             elif board.is_insufficient_material():
-                self.end_game('insufficient_material')
+                self.end_game('insufficient_material', show_message)
             elif board.is_seventyfive_moves():
-                self.end_game('seventy five moves')
+                self.end_game('seventy five moves', show_message)
             elif board.is_fivefold_repetition():
-                self.end_game('fivefold_repetition')
+                self.end_game('fivefold_repetition', show_message)
             return True
-
-        # elif float(self.white_time) < 0:
-        #     self.end_game('white ran out of time')
-        #     return True
-        # elif float(self.black_time) < 0:
-        #     self.end_game('black ran out of time')
-        #     return True
-
         return False
+
+    def loaded(self, *args):
+        if self.game_instance.board.is_game_over():
+            self.game_end_check(show_message=False)
+        else:
+            self.setup_netgame()
 
 
 class GameScreen(Screen):
@@ -425,18 +450,17 @@ class GameScreen(Screen):
     def load_game(self):
         # Loading game
         Logger.info("Loading game...")
-        Logger.info(f"Game: {self.game_instance}")
         chess_game = self.children[0]
         chess_game.game_instance = self.game_instance
         global board
         board = self.game_instance.board
         if self.game_instance.my_side == "White":
-            chess_game.black_time = "Tegenstander"
-            chess_game.white_time = "Ik zelf"
+            chess_game.black_time = "Tegenst."
+            chess_game.white_time = "U zelf"
         else:
-            chess_game.black_time = "Ik zelf"
-            chess_game.white_time = "Tegenstander"
+            chess_game.black_time = "U zelf"
+            chess_game.white_time = "Tegenst."
 
-        chess_game.update_board()  # self.game_instance.board)
-        chess_game.setup_netgame()
+        chess_game.update_board()
+        Clock.schedule_once(chess_game.loaded, 0.2)
         # chess_game.setup_clocks(time=60, interval=.01)

@@ -20,6 +20,21 @@
             on_press: root.queue_new_random_game()
 
         GridLayout:
+            # canvas.before:
+            #     Color:
+            #         rgba: 0, 1, 0, 1
+            #     Rectangle:
+            #         # self here refers to the widget i.e FloatLayout
+            #         pos: self.pos
+            #         size: self.size
+            # size_hint: (.5, 1)
+            height: self.minimum_height
+            cols: 1
+            size_hint_y: None
+            id: current_games
+            orientation: 'vertical'
+
+        GridLayout:
             canvas.before:
                 Color:
                     rgba: 0, 1, 0, 1
@@ -31,7 +46,7 @@
             height: self.minimum_height
             cols: 1
             size_hint_y: None
-            id: current_games
+            id: done_games
             # Don't eat the full window
             pos: (0, root.height - 100)
             orientation: 'vertical'

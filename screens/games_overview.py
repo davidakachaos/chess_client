@@ -1,10 +1,9 @@
 from kivy.app import App
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.screenmanager import Screen
 from kivy.properties import ObjectProperty
 from kivy.uix.label import Label
 from kivy.logger import Logger
 from kivy.uix.button import Button
-from models.player import Player
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from screens.queue_for_game import QueueForGame
@@ -18,10 +17,13 @@ class GameRow(BoxLayout):
         self.height = 50
         self.game = game
         game_description = f"Spel versus {game.my_opponent}."
-        if game.my_turn:
-            game_description += " Mijn zet!"
+        if game.over:
+            game_description += f"\nAfgelopen! Resultaat: {game.over_reason}"
         else:
-            game_description += " Tegenstander aan zet."
+            if game.my_turn:
+                game_description += " Mijn zet!"
+            else:
+                game_description += " Tegenstander aan zet."
         # Label for game
         game_label = Label(text=game_description)
         game_label.halign = 'left'
@@ -54,7 +56,10 @@ class GamesOverview(Screen):
         self.ids.current_games.clear_widgets()
         app = App.get_running_app()
         current = app.player.current_games
-        Logger.info(f"Found {len(current)} games for player")
+        done = app.player.done_games
+        Logger.info(f"Found {len(current + done)} games for player")
+        for game in done:
+            self.ids.done_games.add_widget(GameRow(game))
         for game in current:
             self.ids.current_games.add_widget(GameRow(game))
 
@@ -63,23 +68,3 @@ class GamesOverview(Screen):
         app.manager.add_widget(QueueForGame(name="queue"))
         app.manager.current = "queue"
         Clock.schedule_once(app.manager.get_screen("queue").start_queue_up, 0.3)
-
-
-class OverviewApp(App):
-    player = ObjectProperty(None)
-
-    def build(self):
-        manager = ScreenManager()
-        manager.add_widget(GamesOverview(name='overview'))
-        manager.current = "overview"
-
-        app = App.get_running_app()
-        app.player = Player("David2", "Welkom123")
-
-        manager.get_screen('overview').get_current_games()
-
-        return manager
-
-
-if __name__ == '__main__':
-    OverviewApp().run()

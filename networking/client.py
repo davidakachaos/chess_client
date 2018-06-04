@@ -1,5 +1,4 @@
-"""Summary
-"""
+"""The networking client code."""
 import hashlib
 # import logging
 import pickle
@@ -59,6 +58,8 @@ class NetClient():
             String: The raw result from the server
 
         """
+        if len(cmd) < 1:
+            return None
         if self.logged_in:
             cmd += f"|{self._uguid}"
 
@@ -181,6 +182,30 @@ class NetClient():
         if self.logged_in is False or self._uguid is None:
             return []
         cmd = "current_games"
+        gguids = self._getString(cmd).split("|")
+        games = []
+        for guid in gguids:
+            if len(guid) > 0:
+                games.append(Game(guid, self))
+        return games
+
+    @MWT(timeout=5)
+    def done_games(self):
+        if self.logged_in is False or self._uguid is None:
+            return []
+        cmd = "done_games"
+        gguids = self._getString(cmd).split("|")
+        games = []
+        for guid in gguids:
+            if len(guid) > 0:
+                games.append(Game(guid, self))
+        return games
+
+    @MWT(timeout=5)
+    def all_games(self):
+        if self.logged_in is False or self._uguid is None:
+            return []
+        cmd = "all_games"
         gguids = self._getString(cmd).split("|")
         games = []
         for guid in gguids:

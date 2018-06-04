@@ -19,6 +19,14 @@ class Player(object):
         return self._games
 
     @property
+    def done_games(self):
+        return self.net.done_games()
+
+    @property
+    def all_games(self):
+        return self.net.all_games()
+
+    @property
     def logged_in(self):
         return self.net.logged_in
 
